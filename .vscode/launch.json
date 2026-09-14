@@ -1,0 +1,43 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: Python File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}"
+        },
+        {
+            "name": "Debug run.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "args": [
+                "--task_name", "multi_anomaly_detection",
+                "--is_training", "1",
+                "--model_id", "test",
+                "--model", "Autoformer",
+                "--data", "MULTI_ANOMALY",
+                "--root_path", "./dataset/anomaly/",
+                "--features", "M",
+                "--seq_len", "100",
+                "--pred_len", "0",
+                "--d_model", "128",
+                "--d_ff", "128",
+                "--e_layers", "3",
+                "--enc_in", "2",
+                "--c_out", "2",
+                "--anomaly_ratio", "1",
+                "--batch_size", "16",
+                "--train_epochs", "100"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
+        }
+    ]
+}

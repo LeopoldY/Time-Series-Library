@@ -1,5 +1,5 @@
 from data_provider.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_M4, PSMSegLoader, \
-    MSLSegLoader, SMAPSegLoader, SMDSegLoader, SWATSegLoader, UEAloader
+    MSLSegLoader, SMAPSegLoader, SMDSegLoader, SWATSegLoader, UEAloader, MultiAnomalyLoader
 from data_provider.uea import collate_fn
 from torch.utils.data import DataLoader
 
@@ -15,7 +15,8 @@ data_dict = {
     'SMAP': SMAPSegLoader,
     'SMD': SMDSegLoader,
     'SWAT': SWATSegLoader,
-    'UEA': UEAloader
+    'UEA': UEAloader,
+    'MULTI_ANOMALY': MultiAnomalyLoader,
 }
 
 
@@ -28,7 +29,7 @@ def data_provider(args, flag):
     batch_size = args.batch_size
     freq = args.freq
 
-    if args.task_name == 'anomaly_detection':
+    if args.task_name == 'anomaly_detection' or args.task_name == 'multi_anomaly_detection':
         drop_last = False
         data_set = Data(
             args = args,

@@ -10,7 +10,57 @@ import warnings
 import numpy as np
 import pdb
 
+import pandas as pd
+from sklearn.metrics import classification_report, accuracy_score, f1_score, precision_score, recall_score, confusion_matrix
+
 warnings.filterwarnings('ignore')
+
+import torch.nn.functional as F # 确保头部导入了 F
+
+# ================= 核心：Focal Loss 定义 =================
+class BinaryFocalLoss(nn.Module):
+    """
+    Focal Loss: 专注于难分样本，解决极度不平衡问题
+    公式: FL(p_t) = -alpha * (1 - p_t)**gamma * log(p_t)
+    """
+    def __init__(self, alpha=0.25, gamma=2.0, reduction='mean'):
+        super(BinaryFocalLoss, self).__init__()
+        # alpha: 平衡正负样本权重 (0.25是论文默认值，正样本少时可适当调大，如0.75)
+        # gamma: 关注难分样本 (2.0是标准值，越大越关注难样本)
+        self.alpha = alpha
+        self.gamma = gamma
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        # 针对二分类任务，输入 logits 维度通常为 [Batch, 1] 或 [Batch]
+        # 如果是多分类 (c_out=2) 使用 Softmax 输出，这里需要适配 CrossEntropy 的逻辑
+        
+        # 这里的实现是针对 CrossEntropy (Softmax) 的形式
+        # inputs: [Batch, C], targets: [Batch]
+        
+        ce_loss = F.cross_entropy(logits, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        
+        # 动态计算 alpha
+        # 如果 target=1, alpha_t = alpha
+        # 如果 target=0, alpha_t = 1-alpha
+        # 但标准的 CrossEntropy Focal Loss 通常简化为只对 loss 加权
+        
+        focal_loss = (1 - pt) ** self.gamma * ce_loss
+        
+        if self.alpha is not None:
+             # 手动根据 label 施加 alpha
+             # 假设 1 是正类
+             alpha_t = self.alpha * targets + (1 - self.alpha) * (1 - targets)
+             focal_loss = alpha_t * focal_loss
+
+        if self.reduction == 'mean':
+            return focal_loss.mean()
+        elif self.reduction == 'sum':
+            return focal_loss.sum()
+        else:
+            return focal_loss
+# =======================================================
 
 
 class Exp_Classification(Exp_Basic):
@@ -41,7 +91,10 @@ class Exp_Classification(Exp_Basic):
         return model_optim
 
     def _select_criterion(self):
-        criterion = nn.CrossEntropyLoss()
+        # 使用 Focal Loss
+        # alpha=0.75 表示给予正样本(Label=1)更高的权重 (0.75 vs 0.25)
+        # gamma=2.0 表示降低简单样本的权重，专注于难分样本
+        criterion = BinaryFocalLoss(alpha=0.7, gamma=2.0)
         return criterion
 
     def vali(self, vali_data, vali_loader, criterion):
@@ -57,19 +110,35 @@ class Exp_Classification(Exp_Basic):
 
                 outputs = self.model(batch_x, padding_mask, None, None)
 
-                pred = outputs.detach().cpu()
-                loss = criterion(pred, label.long().squeeze().cpu())
-                total_loss.append(loss)
+                # ==================== 【关键修复】 ====================
+                # 1. 之前代码用了 .cpu() 导致和 GPU 上的 criterion 冲突
+                # 2. 直接在 GPU 上计算 Loss
+                # 3. 使用 .item() 取值，避免后续 np.average 报错
+                # ====================================================
+                
+                # 修正前 (您的报错代码): 
+                # pred = outputs.detach().cpu()
+                # loss = criterion(pred, label.long().squeeze().cpu())
+
+                # 修正后:
+                loss = criterion(outputs, label.long().squeeze())
+                
+                # 必须加 .item()，否则还是会报 numpy 转换错误
+                total_loss.append(loss.item())
 
                 preds.append(outputs.detach())
                 trues.append(label)
 
         total_loss = np.average(total_loss)
 
+        # 后处理逻辑保持不变 (在最后统一转 CPU 计算指标)
         preds = torch.cat(preds, 0)
         trues = torch.cat(trues, 0)
-        probs = torch.nn.functional.softmax(preds)  # (total_samples, num_classes) est. prob. for each class and sample
-        predictions = torch.argmax(probs, dim=1).cpu().numpy()  # (total_samples,) int class index for each sample
+        
+        # Softmax + Argmax (针对二分类 c_out=2)
+        probs = torch.nn.functional.softmax(preds, dim=1) 
+        predictions = torch.argmax(probs, dim=1).cpu().numpy()
+        
         trues = trues.flatten().cpu().numpy()
         accuracy = cal_accuracy(predictions, trues)
 
@@ -175,8 +244,55 @@ class Exp_Classification(Exp_Basic):
         trues = trues.flatten().cpu().numpy()
         accuracy = cal_accuracy(predictions, trues)
 
+        # ==========================================================
+        # 核心修改：计算多维度指标
+        # ==========================================================
+        print("\n" + "="*20 + " Test Results " + "="*20)
+
+        # 【关键修复】必须加 .cpu() 才能转 numpy
+        
+        # 1. 打印详细报告 (包含每一类的 P/R/F1)
+        # digits=4 保证保留4位小数
+        report = classification_report(trues, predictions, digits=4)
+        print(report)
+        
+        # 2. 计算核心指标 (关注 label=1 即故障类)
+        # binary模式下，只计算 positive label (1) 的指标
+        acc = accuracy_score(trues, predictions)
+        precision = precision_score(trues, predictions, average='binary', pos_label=1)
+        recall = recall_score(trues, predictions, average='binary', pos_label=1)
+        f1 = f1_score(trues, predictions, average='binary', pos_label=1)
+        
+        print(f"Accuracy:  {acc:.4f}")
+        print(f"Precision: {precision:.4f}")
+        print(f"Recall:    {recall:.4f}")
+        print(f"F1-Score:  {f1:.4f}")
+        print("="*54)
+
+        # 3. 保存结果到 CSV
+        result_dict = {
+            'Timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'Model': self.args.model,
+            'Seq_Len': self.args.seq_len,
+            'Accuracy': acc,
+            'Precision': precision,
+            'Recall': recall,
+            'F1_Score': f1,
+            'Exp_ID': setting
+        }
+        
+        summary_file = 'fault_classification_results.csv'
+        df_new = pd.DataFrame([result_dict])
+        
+        if os.path.exists(summary_file):
+            df_new.to_csv(summary_file, mode='a', header=False, index=False)
+        else:
+            df_new.to_csv(summary_file, mode='w', header=True, index=False)
+        
+        print(f"Metrics saved to {os.path.abspath(summary_file)}")
+
         # result save
-        folder_path = './results/' + setting + '/'
+        folder_path = './results_classification/' + setting + '/'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 

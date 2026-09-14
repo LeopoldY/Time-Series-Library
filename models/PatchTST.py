@@ -42,6 +42,10 @@ class Model(nn.Module):
         self.task_name = configs.task_name
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
+        
+        
+        patch_len = configs.patch_len if configs.patch_len else 16
+        stride = configs.stride if configs.stride else 8
         padding = stride
 
         # patching and embedding

@@ -7,6 +7,8 @@ from exp.exp_imputation import Exp_Imputation
 from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
 from exp.exp_anomaly_detection import Exp_Anomaly_Detection
 from exp.exp_classification import Exp_Classification
+from exp.exp_mulit_output_anomaly_detection import Exp_Mulit_Output_Anomaly_Detection
+from exp.exp_fault_classification import Exp_Fault_Classification
 from utils.print_args import print_args
 import random
 import numpy as np
@@ -39,9 +41,9 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 
     # forecasting task
-    parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
-    parser.add_argument('--label_len', type=int, default=48, help='start token length')
-    parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length')
+    parser.add_argument('--seq_len', type=int, default=96, help='input sequence length 用过去的多少条数据来预测未来的数据。')
+    parser.add_argument('--label_len', type=int, default=48, help='start token length 可以裂解为更高的权重占比的部分，要<seq_len。')
+    parser.add_argument('--pred_len', type=int, default=96, help='prediction sequence length 预测未来多少个时间点的数据。')
     parser.add_argument('--seasonal_patterns', type=str, default='Monthly', help='subset for M4')
     parser.add_argument('--inverse', action='store_true', help='inverse output data', default=False)
 
@@ -56,9 +58,9 @@ if __name__ == '__main__':
     parser.add_argument('--d_conv', type=int, default=4, help='conv kernel size for Mamba')
     parser.add_argument('--top_k', type=int, default=5, help='for TimesBlock')
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
-    parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')
-    parser.add_argument('--dec_in', type=int, default=7, help='decoder input size')
-    parser.add_argument('--c_out', type=int, default=7, help='output size')
+    parser.add_argument('--enc_in', type=int, default=7, help='encoder input size 数据有多少列,要减去时间那一列。')
+    parser.add_argument('--dec_in', type=int, default=7, help='decoder input size 数据有多少列,要减去时间那一列。')
+    parser.add_argument('--c_out', type=int, default=7, help='output size 如果features填写的是M那么和上面就一样，是数据列数。如果填写的是MS，那么这里要输入1，因为你的输出只有一列数据。')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
     parser.add_argument('--e_layers', type=int, default=2, help='num of encoder layers')
@@ -88,7 +90,7 @@ if __name__ == '__main__':
     # optimization
     parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')
     parser.add_argument('--itr', type=int, default=1, help='experiments times')
-    parser.add_argument('--train_epochs', type=int, default=10, help='train epochs')
+    parser.add_argument('--train_epochs', type=int, default=100, help='train epochs')
     parser.add_argument('--batch_size', type=int, default=32, help='batch size of train input data')
     parser.add_argument('--patience', type=int, default=3, help='early stopping patience')
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='optimizer learning rate')
@@ -139,6 +141,8 @@ if __name__ == '__main__':
 
     # TimeXer
     parser.add_argument('--patch_len', type=int, default=16, help='patch length')
+    # PatchTST
+    parser.add_argument('--stride', type=int, default=8, help='stride for patch_embedding')
 
     args = parser.parse_args()
     if torch.cuda.is_available() and args.use_gpu:
@@ -168,8 +172,12 @@ if __name__ == '__main__':
         Exp = Exp_Imputation
     elif args.task_name == 'anomaly_detection':
         Exp = Exp_Anomaly_Detection
+    elif args.task_name == 'multi_anomaly_detection':
+        Exp = Exp_Mulit_Output_Anomaly_Detection
     elif args.task_name == 'classification':
         Exp = Exp_Classification
+    elif args.task_name == 'fault_classification':
+        Exp = Exp_Fault_Classification
     else:
         Exp = Exp_Long_Term_Forecast
 
@@ -198,6 +206,7 @@ if __name__ == '__main__':
                 args.distil,
                 args.des, ii)
 
+            print(args)
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
 

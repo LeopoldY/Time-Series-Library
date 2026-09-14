@@ -1,0 +1,73 @@
+fault_classification_设备69_12_cls_PatchTST_custom_ftMS_sl12_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc3_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.10, Acc:0.0005, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备69_24_cls_PatchTST_custom_ftMS_sl24_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc3_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.45, Acc:0.0123, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备69_12_cls_iTransformer_custom_ftMS_sl12_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc1_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.10, Acc:0.0064, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备69_24_cls_iTransformer_custom_ftMS_sl24_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc1_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.10, Acc:0.0123, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备69_12_cls_PatchTST_custom_ftMS_sl12_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc1_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.10, Acc:0.0005, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备69_24_cls_PatchTST_custom_ftMS_sl24_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc1_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.45, Acc:0.0123, Prec:0.0005, Recall:1.0000, F1:0.0010
+
+fault_classification_设备58_12_cls_iTransformer_custom_ftMS_sl12_ll0_pl1_dm512_nh8_el2_dl1_df2048_expand2_dc4_fc1_ebtimeF_dtTrue_Exp_Fault_Cls_0  
+Thresh:0.10, Acc:0.0000, Prec:0.0000, Recall:0.0000, F1:0.0000
+
+
+Nonstationary_Transformer with time information 
+==================== Test Results ====================
+              precision    recall  f1-score   support
+
+           0     0.9670    0.9827    0.9748       985
+           1     0.0556    0.0294    0.0385        34
+
+    accuracy                         0.9509      1019
+   macro avg     0.5113    0.5061    0.5066      1019
+weighted avg     0.9366    0.9509    0.9436      1019
+
+Accuracy:  0.9509
+Precision: 0.0556
+Recall:    0.0294
+F1-Score:  0.0385
+======================================================
+
+
+TimesNet with time information
+==================== Test Results ====================
+              precision    recall  f1-score   support
+
+           0     0.9709    0.9157    0.9425       985
+           1     0.0778    0.2059    0.1129        34
+
+    accuracy                         0.8921      1019
+   macro avg     0.5244    0.5608    0.5277      1019
+weighted avg     0.9411    0.8921    0.9148      1019
+
+Accuracy:  0.8921
+Precision: 0.0778
+Recall:    0.2059
+F1-Score:  0.1129
+======================================================
+
+informer with time information
+==================== Test Results ====================
+              precision    recall  f1-score   support
+
+           0     0.9664    0.9350    0.9505       985
+           1     0.0303    0.0588    0.0400        34
+
+    accuracy                         0.9058      1019
+   macro avg     0.4984    0.4969    0.4952      1019
+weighted avg     0.9352    0.9058    0.9201      1019
+
+Accuracy:  0.9058
+Precision: 0.0303
+Recall:    0.0588
+F1-Score:  0.0400
+======================================================
