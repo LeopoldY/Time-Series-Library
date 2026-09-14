@@ -42,7 +42,7 @@ def parser():
 
 
 def configure(args):
-    args.model = ROUTES[args.device_id]
+    args.model = getattr(args, 'model', None) or ROUTES[args.device_id]
     args.e_layers = 3 if args.model == 'Informer' else 2
     args.d_layers, args.factor, args.dropout = 1, 3, .1
     args.patch_len = 1 if args.seq_len == 3 else args.seq_len // 2

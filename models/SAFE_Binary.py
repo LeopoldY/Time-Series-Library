@@ -1,5 +1,6 @@
 """Keep the forecast backbone and append a small learnable hidden-layer head."""
 import importlib
+from contextlib import nullcontext
 from types import SimpleNamespace
 import torch
 from torch import nn
@@ -20,11 +21,30 @@ class SafeBinaryModel(nn.Module):
         self.backbone = importlib.import_module('models.' + args.model).Model(config)
         self.head = nn.Sequential(nn.Linear(4, args.head_hidden), nn.GELU(),
                                   nn.Dropout(args.head_dropout), nn.Linear(args.head_hidden, 1))
+        self.backbone_frozen = False
 
-    def forward(self, history, history_mark, decoder_mark):
+    def freeze_backbone(self):
+        self.backbone.requires_grad_(False)
+        self.backbone.zero_grad(set_to_none=True)
+        self.backbone_frozen = True
+        self.backbone.eval()
+
+    def train(self, mode=True):
+        super().train(mode)
+        if self.backbone_frozen:
+            # Freeze BatchNorm buffers and disable backbone dropout too.
+            self.backbone.eval()
+        return self
+
+    def forecast(self, history, history_mark, decoder_mark):
         # The future counts are never passed into this module.
         decoder = torch.cat((history[:, -1:, :], torch.zeros_like(history[:, -1:, :])), dim=1)
         forecast = self.backbone(history, history_mark, decoder, decoder_mark)
         if forecast.ndim != 3 or forecast.shape[1:] != (1, 4):
             raise RuntimeError(f'Expected forecast [B,1,4], got {forecast.shape}')
-        return self.head(forecast[:, -1, :])  # [B,1] logits, no sigmoid before BCE
+        return forecast[:, -1, :]  # [B,4] raw next-hour counts
+
+    def forward(self, history, history_mark, decoder_mark):
+        with torch.no_grad() if self.backbone_frozen else nullcontext():
+            forecast = self.forecast(history, history_mark, decoder_mark)
+        return self.head(forecast)  # [B,1] logits, no sigmoid before BCE
