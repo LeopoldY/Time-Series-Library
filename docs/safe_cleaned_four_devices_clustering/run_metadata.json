@@ -1,0 +1,61 @@
+{
+  "scope": "only devices 27,58,69,83, cleaned full data",
+  "features": [
+    "Level1_Sparsity",
+    "Level1_Mean_Intensity",
+    "Level1_CV",
+    "Level2_Sparsity",
+    "Level2_Mean_Intensity",
+    "Level2_CV",
+    "Level3_Sparsity",
+    "Level3_Mean_Intensity",
+    "Level3_CV",
+    "Level4_Sparsity",
+    "Level4_Mean_Intensity",
+    "Level4_CV"
+  ],
+  "routing": "cluster mean of four per-level zero ratios, ascending",
+  "mapping": {
+    "Dense": "Informer",
+    "Sparse": "PatchTST",
+    "Intermittent": "iTransformer"
+  },
+  "kmeans": {
+    "n_clusters": 3,
+    "n_init": 10,
+    "random_state": 42
+  },
+  "scaler_mean": [
+    0.8243016220600836,
+    0.5691453288954155,
+    26.138052761863925,
+    0.9548214228127048,
+    0.20873064430194332,
+    17.249261254445216,
+    0.9959555731009196,
+    0.009762884536378191,
+    40.451029500480495,
+    0.9763988192083328,
+    0.06397026174968547,
+    24.87860193240263
+  ],
+  "scaler_scale": [
+    0.14882741874240027,
+    0.6708670872706097,
+    40.520011269841405,
+    0.07375230872470112,
+    0.35657884480349245,
+    9.649293305090112,
+    0.0036949111864536593,
+    0.009372759419768457,
+    33.42442263198356,
+    0.03831728690429886,
+    0.10804487386949262,
+    14.17616959566491
+  ],
+  "versions": {
+    "numpy": "2.5.3",
+    "pandas": "2.2.3",
+    "sklearn": "1.9.1"
+  }
+}

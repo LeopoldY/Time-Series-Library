@@ -1,0 +1,61 @@
+{
+  "feature_columns": [
+    "Level1_Sparsity",
+    "Level1_Mean_Intensity",
+    "Level1_CV",
+    "Level2_Sparsity",
+    "Level2_Mean_Intensity",
+    "Level2_CV",
+    "Level3_Sparsity",
+    "Level3_Mean_Intensity",
+    "Level3_CV",
+    "Level4_Sparsity",
+    "Level4_Mean_Intensity",
+    "Level4_CV"
+  ],
+  "n_clusters": 3,
+  "random_state": 42,
+  "n_init": 10,
+  "input_order": "numeric device ID ascending",
+  "scope": "all rows of all 80 devices",
+  "routing": "ascending cluster mean of four per-level zero ratios",
+  "mapping": {
+    "Dense": "Informer",
+    "Sparse": "PatchTST",
+    "Intermittent": "iTransformer"
+  },
+  "scaler_mean": [
+    0.9626065758526068,
+    0.0979922089376715,
+    14.063081299143414,
+    0.9917066836534693,
+    0.025806056448451586,
+    21.296912545957504,
+    0.9908675519404155,
+    0.047863582908663264,
+    29.574270240821136,
+    0.9923032634261073,
+    0.011539592316738534,
+    17.425841283097164
+  ],
+  "scaler_scale": [
+    0.06197664001622763,
+    0.20086803686507432,
+    18.07017898035988,
+    0.028809527745289464,
+    0.10295001341371147,
+    26.737588805456568,
+    0.02936934911421854,
+    0.1720207391779302,
+    34.213306920537256,
+    0.010465179998798117,
+    0.026466084271441394,
+    8.048562914842465
+  ],
+  "inertia": 644.7629399561408,
+  "versions": {
+    "numpy": "2.5.3",
+    "pandas": "2.2.3",
+    "sklearn": "1.9.1"
+  }
+}

@@ -1,0 +1,8 @@
+# Isolated entry point; does not require the full legacy requirements.txt.
+# Install the CUDA-enabled torch build appropriate for your server first.
+torch>=2.1,<3
+numpy>=1.24,<3
+pandas>=1.5,<4
+scikit-learn>=1.2,<2
+einops>=0.8,<1
+reformer-pytorch==1.4.4

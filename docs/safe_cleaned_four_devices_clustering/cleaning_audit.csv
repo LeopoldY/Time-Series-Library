@@ -1,0 +1,5 @@
+﻿Device_Name,Raw_Windows,Cleaned_Windows,Removed_Windows,Retained_Values_Unchanged,Removed_All_Zero,Cleaned_Gap_Count
+设备27,10204,8452,1752,True,True,3
+设备58,10204,9294,910,True,True,1
+设备69,10204,9128,1076,True,True,1
+设备83,10204,9271,933,True,True,1

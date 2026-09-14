@@ -1,0 +1,4 @@
+﻿Cluster,Label,Model,Device_Count,Routing_Sparsity
+0,Dense,Informer,1,0.8940445448676566
+2,Intermittent,iTransformer,2,0.9416600336882028
+1,Sparse,PatchTST,1,0.9741128249379787
