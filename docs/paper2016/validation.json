@@ -1,0 +1,37 @@
+{
+  "safe_tests_passed": 18,
+  "paper_tests_passed": 2,
+  "smoke": {
+    "device": "cpu",
+    "epochs": 1,
+    "cv_fold": 0,
+    "length": 3,
+    "d_model": 16,
+    "n_heads": 2,
+    "d_ff": 32,
+    "batch_size": 256,
+    "completed": [
+      {
+        "device": 27,
+        "model": "Informer",
+        "test_mse": 0.6000141450004705
+      },
+      {
+        "device": 83,
+        "model": "PatchTST",
+        "test_mse": 0.13909758467630493
+      },
+      {
+        "device": 58,
+        "model": "iTransformer",
+        "test_mse": 0.0026142048767579928
+      }
+    ]
+  },
+  "versions": {
+    "torch": "2.14.0",
+    "numpy": "2.5.3",
+    "pandas": "2.2.3"
+  },
+  "limitation": "CPU smoke only; no full CUDA training or convergence claim"
+}

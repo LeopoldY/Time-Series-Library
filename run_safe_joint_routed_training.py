@@ -44,6 +44,7 @@ def parser():
     p.add_argument('--device', default='cuda:0')
     p.add_argument('--num-workers', type=int, default=0)
     p.add_argument('--model', choices=['Informer', 'iTransformer', 'PatchTST'])
+    p.add_argument('--cv-fold', type=int, choices=range(10), help='Paper blocked ten-fold index')
     p.add_argument('--train', action='store_true', help='Required to start training')
     return p
 
@@ -85,8 +86,16 @@ def discover_devices(data_root, requested):
     return paths
 
 
-def cluster_devices(paths, output):
-    features = {device: feature_vector(read_values(path)[1]) for device, path in paths.items()}
+def cluster_devices(paths, output, cv_fold=None):
+    from data_provider.paper2016_split import row_roles
+    features = {}
+    for device, path in paths.items():
+        values = read_values(path)[1]
+        if cv_fold is not None:
+            values = values[row_roles(len(values), cv_fold) == 'train']
+        if not len(values):
+            raise ValueError(f'No training rows for device {device}')
+        features[device] = feature_vector(values)
     devices = sorted(features)
     scaler = StandardScaler().fit(np.asarray([features[device] for device in devices]))
     scaled = scaler.transform(np.asarray([features[device] for device in devices]))
@@ -112,7 +121,7 @@ def cluster_devices(paths, output):
         'scaler_mean': scaler.mean_.tolist(), 'scaler_scale': scaler.scale_.tolist(),
         'cluster_centers': kmeans.cluster_centers_.tolist(),
         'cluster_category': {str(k): v for k, v in names.items()}, 'cluster_sparsity': cluster_sparsity,
-        'random_state': 42, 'n_init': 10, 'routing_version': 'safe_runtime_kmeans_v1'})
+        'random_state': 42, 'n_init': 10, 'routing_version': ('safe_train_fold_kmeans_v2' if cv_fold is not None else 'safe_runtime_kmeans_v1')})
     return {row['device_id']: row for row in rows}
 
 
@@ -166,7 +175,7 @@ def run_epoch(model, loader, device, regression_criterion, classification_criter
 
 
 def train_one(args, device, device_id, model_name, seq_len, path, output):
-    datasets = {split: TwoStageDataset(path, seq_len, split) for split in ('train', 'val', 'test')}
+    datasets = {split: TwoStageDataset(path, seq_len, split, cv_fold=args.cv_fold) for split in ('train', 'val', 'test')}
     audit = {split: data.summary for split, data in datasets.items()}
     positive, negative = audit['train']['positive'], audit['train']['negative']
     if not positive or not negative:
@@ -180,9 +189,9 @@ def train_one(args, device, device_id, model_name, seq_len, path, output):
                    'stride': max(1, (1 if seq_len == 3 else seq_len // 2) // 2),
                    'training_mode': 'joint_end_to_end', 'feature_order': FEATURES,
                    'label_rule': 'any_level_next_hour', 'input_sha256': sha256_file(path),
-                   'data_protocol': 'raw_counts_gap_safe_70_10_20_v1', 'data_audit': audit,
+                   'data_protocol': ('paper2016_blocked10_v1' if args.cv_fold is not None else 'raw_counts_gap_safe_70_10_20_v1'), 'data_audit': audit,
                    'pos_weight': negative / positive, 'head_parameters': args.head_hidden * 5 + 1,
-                   'joint_loss_weight': args.joint_loss_weight, 'routing_version': 'safe_runtime_kmeans_v1',
+                   'joint_loss_weight': args.joint_loss_weight, 'routing_version': ('safe_train_fold_kmeans_v2' if args.cv_fold is not None else 'safe_runtime_kmeans_v1'),
                    'source_data': str(path.resolve()), 'torch_version': str(torch.__version__)})
     model_args = SimpleNamespace(**config)
     model = SafeBinaryModel(model_args).to(device)
@@ -265,7 +274,11 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
     paths = discover_devices(args.data_root, args.devices)
     output = args.output_root / datetime.now().strftime('%Y%m%d_%H%M%S')
-    routes = cluster_devices(paths, output)
+    empty = [d for d, p in paths.items() if not len(read_values(p)[1])]
+    if args.cv_fold is not None:
+        paths = {d: p for d, p in paths.items() if d not in empty}
+    routes = cluster_devices(paths, output, args.cv_fold)
+    write_json(output / 'empty_devices.json', empty)
     if args.model:
         for route in routes.values():
             route['model'] = args.model
@@ -275,6 +288,23 @@ def main():
         model_name = routes[device_id]['model']
         for seq_len in args.lengths:
             print('Starting device=%s model=%s seq_len=%s' % (device_id, model_name, seq_len), flush=True)
+            if args.cv_fold is not None:
+                try:
+                    checks = {s: TwoStageDataset(paths[device_id], seq_len, s, cv_fold=args.cv_fold)
+                              for s in ('train', 'val', 'test')}
+                except ValueError as exc:
+                    if not str(exc).startswith('No continuous windows'):
+                        raise
+                    reason = str(exc)
+                else:
+                    summary = checks['train'].summary
+                    reason = '' if summary['positive'] and summary['negative'] else 'single_class_train'
+                if reason:
+                    with (output / 'skipped.jsonl').open('a') as stream:
+                        stream.write(json.dumps(dict(device=device_id, seq_len=seq_len,
+                                                    fold=args.cv_fold, reason=reason)) + '\n')
+                    print('Skipped:', device_id, seq_len, reason, flush=True)
+                    continue
             train_one(args, device, device_id, model_name, seq_len, paths[device_id], output)
 
 

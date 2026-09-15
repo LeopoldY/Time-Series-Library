@@ -1,0 +1,14 @@
+{
+  "devices": 87,
+  "raw_events": 149761,
+  "derived_removed": 0,
+  "flash_removed": 25605,
+  "duplicate_removed": 19687,
+  "retained_events": 104469,
+  "removed_zero_hours": 366011,
+  "hourly_rows": 521737,
+  "unknown_duration_retained": 0,
+  "protocol": "paper2016_blocked10_v1",
+  "first_label": "2013-01-10 08:34:27",
+  "last_label": "2014-03-11 11:34:27"
+}

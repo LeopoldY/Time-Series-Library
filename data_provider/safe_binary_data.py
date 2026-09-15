@@ -10,7 +10,7 @@ FEATURES = ['w_level1', 'w_level2', 'w_level3', 'w_level4']
 
 
 class SafeBinaryDataset(Dataset):
-    def __init__(self, path, seq_len, split):
+    def __init__(self, path, seq_len, split, cv_fold=None):
         if split not in ('train', 'val', 'test') or seq_len < 1:
             raise ValueError('Invalid split or seq_len')
         df = pd.read_csv(Path(path))
@@ -34,10 +34,16 @@ class SafeBinaryDataset(Dataset):
         cumulative = gap.cumsum()
         candidates = np.arange(max(lo, seq_len), hi, dtype=np.int64)
         self.targets = candidates[cumulative[candidates] == cumulative[candidates-seq_len]]
+        if cv_fold is not None:
+            from data_provider.paper2016_split import split_targets
+            self.targets = split_targets(dates, seq_len, split, cv_fold)
         self.summary = {'split': split, 'rows': n, 'target_start': lo, 'target_end': hi,
                         'windows': len(self.targets),
                         'gap_rejected': len(candidates)-len(self.targets),
                         'positive': int(self.labels[self.targets].sum())}
+        if cv_fold is not None:
+            self.summary.update(cv_fold=cv_fold, protocol='paper2016_blocked10_v1',
+                                target_start=None, target_end=None, gap_rejected=None)
         self.summary['negative'] = len(self.targets) - self.summary['positive']
         if not len(self.targets):
             raise ValueError(f'No continuous windows for {split}, seq_len={seq_len}')
