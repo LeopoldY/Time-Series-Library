@@ -32,8 +32,8 @@
 
 ```bash
 git fetch origin
-git switch codex/paper2016-cleaning-cv
-git pull --ff-only origin codex/paper2016-cleaning-cv
+git switch main
+git pull --ff-only origin main
 python -m pip install -r scripts/long_term_forecast/Fault_script/safe_binary_cleaned/requirements.txt
 python scripts/tools/prepare_paper2016.py
 python scripts/tools/preflight_paper2016.py
