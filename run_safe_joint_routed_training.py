@@ -174,8 +174,11 @@ def run_epoch(model, loader, device, regression_criterion, classification_criter
     return result
 
 
-def train_one(args, device, device_id, model_name, seq_len, path, output):
-    datasets = {split: TwoStageDataset(path, seq_len, split, cv_fold=args.cv_fold) for split in ('train', 'val', 'test')}
+def train_one(args, device, device_id, model_name, seq_len, path, output,
+              datasets=None, metadata=None):
+    if datasets is None:
+        datasets = {split: TwoStageDataset(path, seq_len, split, cv_fold=args.cv_fold)
+                    for split in ('train', 'val', 'test')}
     audit = {split: data.summary for split, data in datasets.items()}
     positive, negative = audit['train']['positive'], audit['train']['negative']
     if not positive or not negative:
@@ -193,6 +196,7 @@ def train_one(args, device, device_id, model_name, seq_len, path, output):
                    'pos_weight': negative / positive, 'head_parameters': args.head_hidden * 5 + 1,
                    'joint_loss_weight': args.joint_loss_weight, 'routing_version': ('safe_train_fold_kmeans_v2' if args.cv_fold is not None else 'safe_runtime_kmeans_v1'),
                    'source_data': str(path.resolve()), 'torch_version': str(torch.__version__)})
+    config.update(metadata or {})
     model_args = SimpleNamespace(**config)
     model = SafeBinaryModel(model_args).to(device)
     loaders = {split: DataLoader(data, batch_size=args.batch_size, shuffle=(split == 'train'),
@@ -201,7 +205,7 @@ def train_one(args, device, device_id, model_name, seq_len, path, output):
     regression_criterion = nn.MSELoss() if args.regression_loss == 'mse' else nn.L1Loss()
     classification_criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([negative / positive], device=device))
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
-    run_dir = output / ('device%d_%s_L%d' % (device_id, model_name, seq_len)) / datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+    run_dir = output / ('device%s_%s_L%d' % (device_id, model_name, seq_len)) / datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     run_dir.mkdir(parents=True, exist_ok=False)
     write_json(run_dir / 'config.json', config)
     best, stale, history = float('inf'), 0, []
@@ -241,7 +245,8 @@ def train_one(args, device, device_id, model_name, seq_len, path, output):
               'test_mse': test['mse'], 'test_mae': test['mae'], 'threshold': args.threshold,
               'classification': classification}
     write_json(run_dir / 'metrics.json', report)
-    frame = {'device_id': device_id, 'target_time': datasets['test'].dates[test['indices']].astype(str)}
+    test_device_ids = getattr(datasets['test'], 'device_ids', None)
+    frame = {'device_id': (test_device_ids[test['indices']] if test_device_ids is not None else device_id), 'target_time': datasets['test'].dates[test['indices']].astype(str)}
     for index, name in enumerate(FEATURES):
         frame[name + '_true'], frame[name + '_pred'] = test['truths'][:, index], test['forecasts'][:, index]
     frame.update({'y_true': y, 'probability': probability, 'y_pred': prediction, 'threshold': args.threshold,
@@ -250,6 +255,7 @@ def train_one(args, device, device_id, model_name, seq_len, path, output):
     write_json(run_dir / 'summary.json', {'device_id': device_id, 'model': model_name,
               'seq_len': seq_len, 'training_mode': 'joint_end_to_end', 'checkpoint': str(checkpoint_path),
               'metrics': report})
+    return run_dir
 
 
 def sha256_file(path):

@@ -1,0 +1,31 @@
+{
+  "existing_safe_tests": 18,
+  "new_cluster_tests": 4,
+  "full_real_data_preflight_jobs": 120,
+  "smoke": [
+    {
+      "dataset": "synthetic",
+      "jobs": 120,
+      "epochs": 1,
+      "device": "cpu",
+      "d_model": 8,
+      "prediction_identity_counts_and_metrics_verified": true
+    },
+    {
+      "dataset": "all_87_real_devices",
+      "jobs": 3,
+      "epochs": 1,
+      "device": "cpu",
+      "d_model": 8,
+      "prediction_identity_counts_and_metrics_verified": true
+    }
+  ],
+  "resume_skipped_completed": 120,
+  "resume_rejects_changed_settings": true,
+  "versions": {
+    "torch": "2.14.0",
+    "pandas": "2.2.3",
+    "numpy": "2.5.3"
+  },
+  "limitation": "CPU smoke; production ten-fold model performance requires the server training run"
+}
