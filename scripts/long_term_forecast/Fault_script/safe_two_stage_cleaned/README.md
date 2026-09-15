@@ -46,6 +46,16 @@ python run_safe_two_stage.py --device-id 58 --model Informer --seq-len 24 \
   --train --device cuda:0
 ```
 
+已有第一阶段主干时，固定设备路由的16组分类实验使用各自的
+`stage1_regression/best_backbone.pt`，不会重新执行回归阶段：
+
+```bash
+# 默认只预检查；显式传入 --train 才启动分类头训练
+bash scripts/long_term_forecast/Fault_script/safe_two_stage_cleaned/run_all_heads.sh
+bash scripts/long_term_forecast/Fault_script/safe_two_stage_cleaned/run_all_heads.sh \
+  --train --device cuda:0 --epochs 100 --patience 3
+```
+
 后台运行示例：
 
 ```bash
@@ -54,6 +64,22 @@ nohup bash scripts/long_term_forecast/Fault_script/safe_two_stage_cleaned/run_al
   --train --device cuda:0 \
   > outputs/safe_two_stage_cleaned/logs/train_$(date +%Y%m%d_%H%M%S).log 2>&1 &
 ```
+
+分类头批量后台运行：
+
+```bash
+mkdir -p outputs/safe_stage2_classification/logs
+LOG="outputs/safe_stage2_classification/logs/all_heads_$(date +%Y%m%d_%H%M%S).log"
+nohup bash scripts/long_term_forecast/Fault_script/safe_two_stage_cleaned/run_all_heads.sh \
+  --train --device cuda:0 --epochs 100 --patience 3 \
+  > "$LOG" 2>&1 &
+echo "PID: $!"
+echo "日志: $LOG"
+tail -f "$LOG"
+```
+
+`run_all_heads.sh`默认使用`outputs/safe_stage2_classification`作为独立输出根目录，
+可通过`BACKBONE_ROOT`、`DATA_ROOT`、`OUTPUT_ROOT`和`PYTHON_BIN`覆盖路径或解释器。
 
 默认回归学习率 `--learning-rate 1e-4`，分类头学习率 `--head-learning-rate 1e-3`；均使用原type1衰减。回归最多 `--regression-epochs 100`，分类头最多 `--epochs 100`；分别用验证损失早停，`--patience 3`。
 
