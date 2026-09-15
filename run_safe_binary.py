@@ -20,7 +20,8 @@ ROUTES = {'27': 'iTransformer', '58': 'Informer', '69': 'iTransformer', '83': 'P
 
 def parser():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--device-id', required=True, choices=ROUTES)
+    p.add_argument('--device-id', required=True,
+                   help='Numeric device ID; non-default devices require an explicit model in the two-stage entry')
     p.add_argument('--data-root', type=Path, default=ROOT/'dataset/fault_selected_cleaned')
     p.add_argument('--output-root', type=Path, default=ROOT/'outputs/safe_binary_cleaned')
     p.add_argument('--seq-len', type=int, default=24, choices=[3, 6, 12, 24])
@@ -42,6 +43,10 @@ def parser():
 
 
 def configure(args):
+    if not args.device_id.isdigit():
+        raise ValueError('device-id must be numeric')
+    if not getattr(args, 'model', None) and args.device_id not in ROUTES:
+        raise ValueError('No default route for device; supply --model via the two-stage entry')
     args.model = getattr(args, 'model', None) or ROUTES[args.device_id]
     args.e_layers = 3 if args.model == 'Informer' else 2
     args.d_layers, args.factor, args.dropout = 1, 3, .1
