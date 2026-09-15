@@ -1,0 +1,118 @@
+{
+  "source": "predictions_csv_all_devices_lengths.zip",
+  "sha256": "77f0c3039324dfe7e9cdf05a8bdd85e4480b48020a13ffe421149837a1538b00",
+  "files": [
+    {
+      "source": "device27_iTransformer_L12/20260915_124213_884634/stage2_head/predictions.csv",
+      "rows": 1678,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device27_iTransformer_L24/20260915_124251_414328/stage2_head/predictions.csv",
+      "rows": 1666,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device27_iTransformer_L3/20260915_124052_079021/stage2_head/predictions.csv",
+      "rows": 1687,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device27_iTransformer_L6/20260915_124130_190179/stage2_head/predictions.csv",
+      "rows": 1684,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device58_Informer_L12/20260915_124743_763504/stage2_head/predictions.csv",
+      "rows": 1858,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device58_Informer_L24/20260915_124909_754884/stage2_head/predictions.csv",
+      "rows": 1858,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device58_Informer_L3/20260915_124333_119341/stage2_head/predictions.csv",
+      "rows": 1858,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device58_Informer_L6/20260915_124541_546050/stage2_head/predictions.csv",
+      "rows": 1858,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device69_iTransformer_L12/20260915_125150_650946/stage2_head/predictions.csv",
+      "rows": 1825,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device69_iTransformer_L24/20260915_125224_369675/stage2_head/predictions.csv",
+      "rows": 1825,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device69_iTransformer_L3/20260915_125025_014817/stage2_head/predictions.csv",
+      "rows": 1825,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device69_iTransformer_L6/20260915_125108_558814/stage2_head/predictions.csv",
+      "rows": 1825,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device83_PatchTST_L12/20260915_125441_606399/stage2_head/predictions.csv",
+      "rows": 1854,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device83_PatchTST_L24/20260915_125552_808805/stage2_head/predictions.csv",
+      "rows": 1854,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device83_PatchTST_L3/20260915_125238_658148/stage2_head/predictions.csv",
+      "rows": 1854,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    },
+    {
+      "source": "device83_PatchTST_L6/20260915_125308_908796/stage2_head/predictions.csv",
+      "rows": 1854,
+      "missing_values": 0,
+      "duplicate_timestamps": 0,
+      "threshold_mismatch": 0
+    }
+  ]
+}
