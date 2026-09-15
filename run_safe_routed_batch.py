@@ -40,7 +40,9 @@ def build_plan(routes_path, checkpoint_root, data_root, lengths, regression_loss
     jobs, problems, seen = [], [], set()
     candidates = sorted(Path(checkpoint_root).glob('*/*/stage1_regression/best_backbone.pt'))
     for route in routes:
-        device = route['Device_Name'].removeprefix('设备')
+        device_name = route['Device_Name']
+        # str.removeprefix requires Python 3.9; keep older servers compatible.
+        device = device_name[len('设备'):] if device_name.startswith('设备') else device_name
         model = route['Model']
         if not device.isdigit() or device in seen or model not in MODELS:
             raise ValueError(f'Invalid or duplicate route: {device}/{model}')
