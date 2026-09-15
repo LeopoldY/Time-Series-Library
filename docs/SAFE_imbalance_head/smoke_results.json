@@ -1,0 +1,23 @@
+[
+  {
+    "model": "Informer",
+    "freeze_unchanged": true,
+    "threshold": 0.1070975661277771,
+    "test_windows": 36,
+    "run": "/private/tmp/fault-head-smoke/Informer/device27_Informer_L6/20260915_182230_976129"
+  },
+  {
+    "model": "iTransformer",
+    "freeze_unchanged": true,
+    "threshold": 0.1546330451965332,
+    "test_windows": 36,
+    "run": "/private/tmp/fault-head-smoke/iTransformer/device27_iTransformer_L6/20260915_182233_400500"
+  },
+  {
+    "model": "PatchTST",
+    "freeze_unchanged": true,
+    "threshold": 0.1450362503528595,
+    "test_windows": 36,
+    "run": "/private/tmp/fault-head-smoke/PatchTST/device27_PatchTST_L6/20260915_182235_562274"
+  }
+]

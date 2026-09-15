@@ -1,0 +1,5 @@
+﻿Device_Name,Legacy_Rows,Reference_Rows,Rule_Reproduces_Reference,Raw_Count_Different_Cells,Raw_Minus_Legacy_Events,Current_Cleaned_Rows,Current_Equals_Reference
+设备27,10204,8452,True,0,0,8452,True
+设备58,10204,9294,True,15,15,9294,False
+设备69,10204,9128,True,0,0,9128,True
+设备83,10204,9271,True,0,0,9271,True

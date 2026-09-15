@@ -4,6 +4,7 @@ from contextlib import nullcontext
 from types import SimpleNamespace
 import torch
 from torch import nn
+from models.SAFE_Imbalance import HistoryAwareHead
 
 
 class SafeBinaryModel(nn.Module):
@@ -21,6 +22,11 @@ class SafeBinaryModel(nn.Module):
         self.backbone = importlib.import_module('models.' + args.model).Model(config)
         self.head = nn.Sequential(nn.Linear(4, args.head_hidden), nn.GELU(),
                                   nn.Dropout(args.head_dropout), nn.Linear(args.head_hidden, 1))
+        self.head_type = getattr(args, "head_type", "mlp")
+        if self.head_type == "history":
+            self.head = HistoryAwareHead(args.head_hidden, args.head_dropout)
+        elif self.head_type != "mlp":
+            raise ValueError("Unknown head type")
         self.backbone_frozen = False
 
     def freeze_backbone(self):
@@ -47,4 +53,6 @@ class SafeBinaryModel(nn.Module):
     def forward(self, history, history_mark, decoder_mark):
         with torch.no_grad() if self.backbone_frozen else nullcontext():
             forecast = self.forecast(history, history_mark, decoder_mark)
-        return self.head(forecast)  # [B,1] logits, no sigmoid before BCE
+        if self.head_type == "history":
+            return self.head(forecast, history)
+        return self.head(forecast)  # [B,1] logits

@@ -1,0 +1,71 @@
+{
+  "protocol": "raw_counts_gap_safe_70_10_20_v1",
+  "label_rule": "any_level_next_hour",
+  "routing_sha256": "eb67c5ed62802cff12bebb067f8b3b07d5914807318c0a696156ba865a1e09a6",
+  "devices": 87,
+  "regression_jobs": 348,
+  "classification_jobs": 340,
+  "execution": "serial: each device/length/seed regression then classification, then next job",
+  "data_root": "dataset/fault_all_selected_cleaned",
+  "lengths": [
+    3,
+    6,
+    12,
+    24
+  ],
+  "seeds": [
+    2021
+  ],
+  "blocked_jobs": [
+    {
+      "id": "device59_PatchTST_L3_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 149
+    },
+    {
+      "id": "device59_PatchTST_L6_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 146
+    },
+    {
+      "id": "device59_PatchTST_L12_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 140
+    },
+    {
+      "id": "device59_PatchTST_L24_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 128
+    },
+    {
+      "id": "device62_PatchTST_L3_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 186
+    },
+    {
+      "id": "device62_PatchTST_L6_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 183
+    },
+    {
+      "id": "device62_PatchTST_L12_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 177
+    },
+    {
+      "id": "device62_PatchTST_L24_seed2021",
+      "status": "blocked_single_class_train",
+      "train_positive": 0,
+      "train_negative": 165
+    }
+  ],
+  "preflight": "All route/data hashes and all train/val/test effective windows checked; no training started",
+  "tests": "18 tests passed, including 3 serial planner tests"
+}

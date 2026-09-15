@@ -1,5 +1,6 @@
 """Forecast pretraining, then a frozen-backbone binary head. --train opts in."""
 import hashlib
+import math
 import json
 import random
 from datetime import datetime
@@ -11,6 +12,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from data_provider.safe_binary_data import SafeBinaryDataset, FEATURES
 from models.SAFE_Binary import SafeBinaryModel
+from models.SAFE_Imbalance import AsymmetricBinaryLoss, select_threshold
 from run_safe_binary import ROOT, configure, metrics, parser as binary_parser, write_json
 
 
@@ -33,6 +35,14 @@ def parser():
     p.add_argument('--regression-loss', choices=['mse', 'mae'], default='mse')
     p.add_argument('--regression-epochs', type=int, default=100)
     p.add_argument('--head-learning-rate', type=float, default=1e-3)
+    p.add_argument('--head-type', choices=['mlp', 'history'], default='mlp')
+    p.add_argument('--head-loss', choices=['weighted_bce', 'asymmetric'], default='weighted_bce')
+    p.add_argument('--asl-gamma-neg', type=float, default=4.)
+    p.add_argument('--asl-gamma-pos', type=float, default=0.)
+    p.add_argument('--asl-clip', type=float, default=.05)
+    p.add_argument('--head-selection', choices=['loss', 'ap'], default='loss')
+    p.add_argument('--threshold-policy', choices=['fixed', 'val_fbeta'], default='fixed')
+    p.add_argument('--threshold-beta', type=float, default=1., help='1=F1; 2 emphasizes recall; validation only')
     return p
 
 
@@ -118,7 +128,15 @@ def fit_stage(model, loaders, stage, config, directory, device, criterion, epoch
     checkpoint_path = directory/('best_backbone.pt' if stage == 'regression' else 'best_head.pt')
     for epoch in range(1, epochs+1):
         train = run_epoch(model, loaders['train'], stage, criterion, device, optimizer)
-        val = run_epoch(model, loaders['val'], stage, criterion, device)
+        use_ap = stage == 'head' and config.get('head_selection') == 'ap'
+        if use_ap:
+            val, val_y, val_score, _ = run_epoch(model, loaders['val'], stage, criterion, device, collect=True)
+            val['average_precision'] = metrics(val_y[:, 0].astype(int), (val_score[:, 0] >= .5).astype(int), val_score[:, 0])['average_precision']
+        else:
+            val = run_epoch(model, loaders['val'], stage, criterion, device)
+        # Single-class validation has no meaningful ranking selection: fall back to loss.
+        use_ap = use_ap and 0 < loaders['val'].dataset.summary['positive'] < loaders['val'].dataset.summary['windows']
+        selection_value = -val['average_precision'] if use_ap else val['loss']
         if frozen_hash is not None and state_hash(model.backbone) != frozen_hash:
             raise RuntimeError('Backbone parameters or buffers changed during head training')
         row = {'epoch': epoch, 'learning_rate': optimizer.param_groups[0]['lr'],
@@ -126,11 +144,14 @@ def fit_stage(model, loaders, stage, config, directory, device, criterion, epoch
         if stage == 'regression':
             row.update({f'{split}_{name}': stats[name] for split, stats in [('train', train), ('val', val)]
                         for name in ['mse', 'mae']})
+        row['selection_metric'] = 'average_precision' if use_ap else 'loss'
+        if 'average_precision' in val:
+            row['val_average_precision'] = val['average_precision']
         history.append(row)
         pd.DataFrame(history).to_csv(directory/'history.csv', index=False)
         print(stage, row, flush=True)
-        if val['loss'] < best:
-            best, stale = val['loss'], 0
+        if selection_value < best:
+            best, stale = selection_value, 0
             checkpoint = {'stage': stage, 'config': config, 'epoch': epoch, 'validation': val,
                           'backbone_sha256': state_hash(model.backbone)}
             checkpoint['backbone' if stage == 'regression' else 'model'] = (
@@ -157,6 +178,9 @@ def fit_stage(model, loaders, stage, config, directory, device, criterion, epoch
 
 def main():
     args = configure(parser().parse_args())
+    AsymmetricBinaryLoss(args.asl_gamma_neg, args.asl_gamma_pos, args.asl_clip)
+    if not math.isfinite(args.threshold_beta) or args.threshold_beta <= 0:
+        raise ValueError('threshold-beta must be finite and positive')
     if args.regression_epochs < 1 or args.head_learning_rate <= 0:
         raise ValueError('Invalid regression epochs or head learning rate')
     if (args.stage == 'head') != (args.backbone_checkpoint is not None):
@@ -190,7 +214,7 @@ def main():
                    'input_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                    'data_audit': audit, 'data_protocol': 'raw_counts_gap_safe_70_10_20_v1',
                    'head_parameters': sum(p.numel() for p in model.head.parameters()),
-                   'pos_weight': negative/positive if positive else None,
+                   'pos_weight': negative/positive if positive and args.head_loss == 'weighted_bce' else None,
                    'routing_scope': 'explicit model override or fixed full-cleaned-four-device route',
                    'torch_version': str(torch.__version__), 'numpy_version': np.__version__})
     if args.stage == 'head':
@@ -224,21 +248,41 @@ def main():
         config['backbone_sha256'] = source['backbone_sha256']
         write_json(run_dir/'config.json', config)
         model.freeze_backbone()
-        criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([negative/positive], device=device))
+        if args.head_type == 'history':
+            model.head.initialize_prior(positive, negative)
+        criterion = (AsymmetricBinaryLoss(args.asl_gamma_neg, args.asl_gamma_pos, args.asl_clip)
+                     if args.head_loss == 'asymmetric' else
+                     nn.BCEWithLogitsLoss(pos_weight=torch.tensor([negative/positive], device=device)))
         directory = run_dir/'stage2_head'
         _, checkpoint = fit_stage(model, loaders, 'head', config, directory, device,
                                   criterion, args.epochs, args.head_learning_rate)
+        if args.threshold_policy == 'val_fbeta':
+            _, val_y, val_scores, val_indices = run_epoch(model, loaders['val'], 'head', criterion, device, collect=True)
+            val_scores = val_scores.astype(np.float64)  # retain float32 values exactly in CSV
+            pd.DataFrame({'target_time': datasets['val'].dates[val_indices].astype(str),
+                          'y_true': val_y[:, 0], 'score': val_scores[:, 0]}).to_csv(directory/'validation_scores.csv', index=False)
+            decision = select_threshold(val_y, val_scores, args.threshold_policy, args.threshold, args.threshold_beta)
+        else:
+            decision = select_threshold([0, 1], [.5, .5], 'fixed', args.threshold, args.threshold_beta)
+        write_json(directory/'decision.json', decision)
+        # Persist the operating point with the model before opening test predictions.
+        checkpoint['decision'] = decision
+        torch.save(checkpoint, directory/'best_head.pt')
+        threshold = decision['threshold']
         stats, true, probability, indices = run_epoch(model, loaders['test'], 'head', criterion, device, collect=True)
-        y, probability = true[:, 0].astype(int), probability[:, 0]
-        predicted = (probability >= args.threshold).astype(int)
-        report = {'best_epoch': checkpoint['epoch'], 'test_bce': stats['loss'],
-                  'threshold': args.threshold, 'model': metrics(y, predicted, probability),
+        y, probability = true[:, 0].astype(int), probability[:, 0].astype(np.float64)
+        predicted = (probability >= threshold).astype(int)
+        report = {'best_epoch': checkpoint['epoch'], 'test_loss': stats['loss'], 'head_loss': args.head_loss,
+                  'decision': decision, 'score_note': 'Sigmoid score is not a calibrated event probability',
+                  'threshold': threshold, 'model': metrics(y, predicted, probability),
                   'always_normal': metrics(y, np.zeros_like(y)),
                   'persistence': metrics(y, datasets['test'].labels[indices-1].astype(int))}
+        if args.head_loss == 'weighted_bce':
+            report['test_bce'] = stats['loss']  # legacy consumers
         write_json(directory/'metrics.json', report)
         pd.DataFrame({'device_id': args.device_id, 'target_time': datasets['test'].dates[indices].astype(str),
                       'y_true': y, 'probability': probability, 'y_pred': predicted,
-                      'threshold': args.threshold, 'model': args.model, 'seq_len': args.seq_len,
+                      'threshold': threshold, 'model': args.model, 'seq_len': args.seq_len,
                       'label_rule': 'any_level_next_hour'}).to_csv(directory/'predictions.csv', index=False)
         summary['classification'] = report
     write_json(run_dir/'summary.json', summary)
