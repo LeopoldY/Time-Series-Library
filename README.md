@@ -175,7 +175,7 @@ All the experiment datasets are public, and we obtain them from the following li
 
 ### 下一小时故障类型联合预测（设备27、28、39、46、58）
 
-从原始告警日志的“名称”解析多标签类型，联合训练故障发生与类型预测，支持 Informer / iTransformer / PatchTST。保留完整小时负样本，训练时段拟合词表和归一化，验证集选择模型与阈值，并报告逐类型指标、未知类型和持久性基线。
+从原始告警日志的“名称”解析多标签类型，沿用原设备模型分配，先回归预训练，再冻结主干训练故障发生与类型预测头。默认5设备×L=6/12×单种子，共10组。保留完整小时负样本，训练时段拟合词表和归一化，验证集选择模型与阈值，并报告逐类型指标、未知类型和持久性基线。
 
 - [服务器训练、数据口径与输出说明](docs/SERVER_FAULT_TYPE_TRAINING.md)
 - 批量预检查：`bash scripts/tools/train_fault_types.sh`

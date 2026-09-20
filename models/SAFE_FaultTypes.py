@@ -1,4 +1,4 @@
-"""Joint end-to-end binary and multi-label heads on existing forecast backbones."""
+"""Regression pretraining followed by frozen-backbone multi-label prediction."""
 import importlib
 from types import SimpleNamespace
 import torch
@@ -19,7 +19,28 @@ class FaultTypeModel(nn.Module):
         self.head = nn.Sequential(nn.Linear(channels*3, d_model), nn.GELU(),
                                   nn.Dropout(.1), nn.Linear(d_model, types+1))
 
-    def forward(self, x, xm, dm):
+        self.backbone_frozen = False
+
+    def freeze_backbone(self):
+        self.backbone.requires_grad_(False)
+        self.backbone.zero_grad(set_to_none=True)
+        self.backbone_frozen = True
+        self.backbone.eval()
+
+    def train(self, mode=True):
+        super().train(mode)
+        if self.backbone_frozen:
+            self.backbone.eval()
+        return self
+
+    def forecast(self, x, xm, dm):
         decoder = torch.cat([x[:, -1:], torch.zeros_like(x[:, -1:])], dim=1)
-        forecast = self.backbone(x, xm, decoder, dm)[:, -1]
+        return self.backbone(x, xm, decoder, dm)[:, -1]
+
+    def forward(self, x, xm, dm):
+        if self.backbone_frozen:
+            with torch.no_grad():
+                forecast = self.forecast(x, xm, dm)
+        else:
+            forecast = self.forecast(x, xm, dm)
         return self.head(torch.cat([forecast, x[:, -1], x.mean(1)], dim=1))

@@ -81,29 +81,25 @@ def test_backbones_joint_gradient_and_reload(model, length, tmp_path):
         assert torch.equal(a,b)
 
 
-def test_complete_training_artifacts(tmp_path, monkeypatch):
+def test_routed_preflight_artifacts(tmp_path, monkeypatch):
     import json
     import sys
-    from run_safe_fault_types import main
+    import run_safe_fault_types as runner
     source(tmp_path)
     out = tmp_path/'results'
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Preflight must not construct a model or train')
+    monkeypatch.setattr(runner, 'FaultTypeModel', forbidden)
+    monkeypatch.setattr(runner, 'fit_stage', forbidden)
     monkeypatch.setattr(sys, 'argv', ['run_safe_fault_types.py', '--raw-root', str(tmp_path),
-        '--output-root', str(out), '--devices', '27', '--lengths', '3',
-        '--seeds', '42', '--models', 'iTransformer', 'Informer', 'PatchTST',
-        '--train', '--epochs', '1', '--d-model', '16', '--threads', '1', '--device', 'cpu'])
-    main()
+        '--output-root', str(out), '--devices', '27', '--lengths', '6', '12',
+        '--seed', '42', '--threads', '1', '--device', 'cpu'])
+    runner.main()
     batch = next(out.iterdir())
     completion = json.loads((batch/'completion.json').read_text())
-    assert completion == dict(complete=True, expected=3, completed=3, training=True)
+    assert completion == dict(complete=True, expected=2, completed=2, training=False)
     assert (batch/'prepared/设备27/hourly.csv').exists()
-    for directory in batch.glob('device*'):
-        checkpoint = torch.load(directory/'best.pt', weights_only=True)
-        assert len(checkpoint['thresholds']) == 3
-        rows = pd.read_csv(directory/'predictions.csv')
-        for _, row in rows.iterrows():
-            assert bool(row.any_fault_pred) == bool(json.loads(row.predicted_types))
-        metrics = json.loads((directory/'metrics.json').read_text())
-        assert metrics['test_windows'] == len(rows)
-        assert metrics['per_type']['NEW']['support'] == 1
-        assert metrics['per_type']['NEW']['tp'] == 0
-        assert metrics['unseen_test_events'] == 1
+    plan = json.loads((batch/'plan.json').read_text())
+    assert [job['length'] for job in plan['jobs']] == [6, 12]
+    assert all(job['model'] == 'Informer' for job in plan['jobs'])
+    assert not list(batch.rglob('*.pt'))
