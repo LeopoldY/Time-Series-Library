@@ -25,7 +25,7 @@ Informer / iTransformer / PatchTST 的预测分支接收动态通道数，预测
 
 ## 服务器启动
 
-在已有CUDA PyTorch环境中执行。要求PyTorch≥2.2，NumPy<2；原仓库旧requirements中的torch 1.7.1不适用于安全检查点重载。已有环境满足依赖时无需重装；否则按服务器CUDA配置安装PyTorch后安装其余依赖（见`requirements-fault-types.txt`）。
+在已有CUDA PyTorch环境中执行。目标环境为PyTorch 2.1.0（支持对应的CUDA构建，例如2.1.0+cu118），NumPy<2；原仓库旧requirements中的torch 1.7.1不适用于安全检查点重载。保持服务器现有2.1.0 CUDA环境，无需升级至2.2；已有环境满足依赖时无需重装；否则按服务器CUDA配置安装PyTorch后安装其余依赖（见`requirements-fault-types.txt`）。
 
 ```bash
 cd /你的服务器路径/Time-Series-Library
@@ -78,6 +78,12 @@ python run_safe_fault_types.py --devices 27 28 39 46 58 \
 ```
 
 此版本不支持epoch级断点续训，也不自动跳过旧任务。每次新建时间戳目录；失败即停止，`completion.json`保持false。部分完成后可用`--devices`、`--models`、`--lengths`、`--seeds`选择剩余组合新建批次；不要把多个批次重复窗口合并统计。
+
+兼容性检查（只执行推理与检查点读写，不进行训练）：
+
+```bash
+python -m pytest tests/test_fault_types_torch_compat.py -q
+```
 
 ## 输出与验收
 

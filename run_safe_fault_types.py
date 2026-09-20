@@ -192,8 +192,8 @@ def main():
     for key in ('devices','lengths','models','seeds'):
         if len(getattr(args,key)) != len(set(getattr(args,key))):
             p.error('Duplicate '+key)
-    if args.train and tuple(int(v) for v in torch.__version__.split('+')[0].split('.')[:2]) < (2, 2):
-        p.error('Training requires PyTorch >=2.2 for safe checkpoint loading')
+    if args.train and tuple(int(v) for v in torch.__version__.split('+')[0].split('.')[:2]) < (2, 1):
+        p.error('Training requires PyTorch >=2.1.0 for safe checkpoint loading')
     if args.train and args.device.startswith('cuda') and not torch.cuda.is_available():
         p.error('CUDA unavailable; use --device cpu explicitly')
     torch.set_num_threads(args.threads)
